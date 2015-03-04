@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, current_app, send_file
+from flask import Blueprint, current_app, send_file, send_from_directory
 from flask_restful import abort, Resource, reqparse, Api
 import werkzeug
 import cStringIO
@@ -116,7 +116,7 @@ class GetChunks(Resource):
             return abort(404, message="UUID doesn't exists")
         return chunk_ids
 
-api.add_resource(GetChunks, '/<string:uid>/')
+api.add_resource(GetChunks, '/doc/<string:uid>/')
 
 
 class GetSpecificChunks(Resource):
@@ -132,7 +132,28 @@ class GetSpecificChunks(Resource):
             return abort(404, message="UUID doesn't exists")
         return chunk_ids
 
-api.add_resource(GetSpecificChunks, '/<string:uid>/<string:ttype>')
+api.add_resource(GetSpecificChunks, '/doc/<string:uid>/<string:ttype>')
+
+
+class GetWordclouds(Resource):
+    @staticmethod
+    def get(uid, lang):
+        word_cloud = current_app.kluge_web_datastore.get_word_cloud(uid, lang)
+        if word_cloud is None:
+            return abort(404, message="UUID or lang doesn't exists")
+        return word_cloud
+
+api.add_resource(GetWordclouds, '/doc/<string:uid>/<string:lang>/wordcloud')
+
+
+# Mock file download
+#class DemoPage(Resource):
+#    @staticmethod
+#    def get():
+#        src_directory = os.path.dirname(os.path.realpath("./static"))
+#        return send_from_directory(src_directory, "index.html")
+
+#api.add_resource(DemoPage, '/demo')
 
 
 # Mock file download

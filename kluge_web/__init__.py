@@ -4,7 +4,7 @@ import datastore
 
 
 def create_app(cfg_module=None, cfg_overrides=None):
-    app = Flask('kluge_web')
+    app = Flask('kluge_web', static_folder="./static", static_url_path="/demo")
     api.init_app(app)
 
     # Dynamically load configuration, with potential overrides
