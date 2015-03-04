@@ -3,6 +3,8 @@ from flask import Blueprint, current_app, send_file
 from flask_restful import abort, Resource, reqparse, Api
 import werkzeug
 import cStringIO
+import redis
+from kluge_web.io.tokenizer_job_pb2 import TokenizerJobMessage
 
 api = Api()
 blue = Blueprint('main', __name__, None)
@@ -10,58 +12,8 @@ blue = Blueprint('main', __name__, None)
 
 @blue.route('/')
 def index():
-    conf_app_name = current_app.config.get('KLUGE_WEB_APP_NAME', 'TODO APPLICATION')
+    conf_app_name = current_app.config.get('KLUGE_WEB_APP_NAME', 'ASR transcript demo\n')
     return conf_app_name
-
-
-def abort_if_todo_doesnt_exist(todo, todo_id):
-    if todo_id not in todo.todo_list:
-        abort(404, message="Todo {} doesn't exist".format(todo_id))
-
-parser = reqparse.RequestParser()
-parser.add_argument('task', type=str)
-
-
-# Todo
-#   show a single todo item and lets you delete them
-class Todo(Resource):
-    @staticmethod
-    def get(todo_id):
-        todo = current_app.kluge_web_datastore
-        abort_if_todo_doesnt_exist(todo, todo_id)
-        return todo.todo_list[todo_id]
-
-    @staticmethod
-    def delete(todo_id):
-        todo = current_app.kluge_web_datastore
-        abort_if_todo_doesnt_exist(todo, todo_id)
-        del todo.todo_list[todo_id]
-        return '', 204
-
-    @staticmethod
-    def put(todo_id):
-        todo = current_app.kluge_web_datastore
-        args = parser.parse_args()
-        task = {'task': args['task']}
-        todo.todo_list[todo_id] = task
-        return task, 201
-
-
-# TodoList
-#   shows a list of all todos, and lets you POST to add new tasks
-class TodoList(Resource):
-    @staticmethod
-    def get():
-        todo = current_app.kluge_web_datastore
-        return todo.todo_list
-
-    @staticmethod
-    def post():
-        todo = current_app.kluge_web_datastore
-        args = parser.parse_args()
-        todo_id = 'todo%d' % (len(todo.todo_list) + 1)
-        todo.todo_list[todo_id] = {'task': args['task']}
-        return todo.todo_list[todo_id], 201
 
 
 # Mock file download
@@ -94,7 +46,62 @@ class FileUp(Resource):
 ##
 ## Actually setup the Api resource routing here
 ##
-api.add_resource(TodoList, '/todos')
-api.add_resource(Todo, '/todos/<string:todo_id>')
 api.add_resource(FileDown, '/file')
 api.add_resource(FileUp, '/fileup')
+
+
+# Transcripts argparse
+transcripts_args = reqparse.RequestParser()
+transcripts_args.add_argument('queue', type=str, required=True)
+transcripts_args.add_argument('num', type=int, default=-1)
+
+
+# Transcripts
+#   pull all transcripts on completed redis queue
+class Transcripts(Resource):
+    @staticmethod
+    def get():
+        redis_connection = current_app.kluge_web_datastore
+        transcripts = redis_connection.get_transcripts('english_results', 5)
+        words = [(t.uid, t.word_transcript) for t in transcripts]
+        return words, 201
+
+    @staticmethod
+    def post():
+        args = transcripts_args.parse_args()
+        queue = args['queue']
+        num = args['num']
+        redis_connection = current_app.kluge_web_datastore
+        transcripts = redis_connection.get_transcripts(queue, num - 1)
+        words = [(t.uid, t.word_transcript) for t in transcripts]
+        return words, 201
+
+
+# Transcripts argparse
+jobs_args = reqparse.RequestParser()
+jobs_args.add_argument('queue', type=str, required=True)
+jobs_args.add_argument('num', type=int, default=-1)
+
+
+# Jobs
+#   pull all jobs on task redis queue
+class Jobs(Resource):
+    @staticmethod
+    def get():
+        redis_connection = current_app.kluge_web_datastore
+        jobs = redis_connection.get_jobs('english_audio', 5)
+        job_ids = [(j.uid, TokenizerJobMessage.AudioFormat.Name(j.format)) for j in jobs]
+        return job_ids
+
+    @staticmethod
+    def post():
+        args = jobs_args.parse_args()
+        queue = args['queue']
+        num = args['num']
+        redis_connection = current_app.kluge_web_datastore
+        jobs = redis_connection.get_jobs(queue, num - 1)
+        job_ids = [(j.uid, TokenizerJobMessage.AudioFormat.Name(j.format)) for j in jobs]
+        return job_ids, 201
+
+api.add_resource(Transcripts, '/transcripts')
+api.add_resource(Jobs, '/jobs')

@@ -11,7 +11,7 @@ def create_app(cfg_module=None, cfg_overrides=None):
     load_config(app, cfg_module, cfg_overrides)
 
     # Dynamically create datastore object and attach it to app
-    app.sm_web_datastore = create_datastore(app)
+    app.kluge_web_datastore = create_datastore(app)
 
     # import all route modules
     # and register blueprints
@@ -38,5 +38,7 @@ def load_config(app, cfg_module, cfg_overrides):
 def create_datastore(app):
     # Discover datastore type from configuration
     ds_class = app.config.get('KLUGE_WEB_DATASTORE', None)
-    todo_ds = getattr(datastore, ds_class)()
-    return todo_ds
+    ds_hostname = app.config.get('KLUGE_DS_HOSTNAME', None)
+    ds_port = app.config.get('KLUGE_DS_PORT', None)
+    redis_ds = getattr(datastore, ds_class)(hostname=ds_hostname, port=ds_port)
+    return redis_ds

@@ -1,0 +1,24 @@
+package kluge.web;
+
+option optimize_for = SPEED;
+option java_package = "com.bbn.JCube.hlt.speech.analytic.tokenizer";
+option java_outer_classname = "PBTokenizerJobMessage";
+
+message TokenizerJobMessage {
+  enum AudioFormat {
+    WAV = 0;
+    UL = 1;
+    LU = 2;
+    SPH = 3;
+  }
+
+  optional string uid = 1;
+  optional string language = 2;
+  optional int32 chunk = 3 [default = -1];
+  optional string audio_uri = 5;
+  optional string marks_uri = 6;
+  optional bytes raw_audio = 8;
+  optional AudioFormat format = 9;
+  optional int32 sample_rate = 10;
+  optional int32 sample_size = 11;
+}

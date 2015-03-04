@@ -1,0 +1,26 @@
+package kluge.web;
+
+option optimize_for = SPEED;
+option java_package = "com.bbn.JCube.hlt.speech.analytic.tokenizer";
+option java_outer_classname = "PBTokenizerResultMessage";
+
+message TokenizerResultMessage {
+  optional string language = 1;
+  optional string language_pack_name = 2;
+  optional string language_pack_version = 3;
+  optional float posterior_to_conf_scaling = 4;
+
+  optional bytes phonetic_backoff_index = 5;
+  optional bytes triphone_list = 6;
+  optional bytes word_lattice = 7;
+  optional string uid = 8;
+  optional int32 chunk = 9;
+
+  optional bytes pipeline_log = 16;
+  optional bytes analist = 17;
+  optional bytes subword_lattice = 18;
+  optional bytes word_transcript = 19;
+  optional bytes word_transcript_trans = 20;
+  optional bytes subword_transcript = 21;
+  optional bytes subword_transcript_trans = 22;
+}
