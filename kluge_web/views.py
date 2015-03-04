@@ -113,6 +113,15 @@ class GetWordclouds(Resource):
         return word_cloud
 
 
+class GetWordcloudsChunk(Resource):
+    @staticmethod
+    def get(uid, lang, chunkid):
+        word_cloud = current_app.kluge_web_datastore.get_word_cloud_chunk(uid, lang, chunkid)
+        if word_cloud is None:
+            return abort(404, message="UUID, lang or chunk doesn't exists")
+        return word_cloud
+
+
 # Mock file download
 class FileDown(Resource):
     @staticmethod
@@ -179,6 +188,7 @@ api.add_resource(StatusInfo, '/status/<string:uid>/<string:chunkid>/<string:lang
 api.add_resource(GetChunks, '/doc/<string:uid>/')
 api.add_resource(GetSpecificChunks, '/doc/<string:uid>/<string:ttype>')
 api.add_resource(GetWordclouds, '/doc/<string:uid>/<string:lang>/wordcloud')
+api.add_resource(GetWordcloudsChunk, '/doc/<string:uid>/<string:lang>/wordcloud/<int:chunkid>')
 
 #api.add_resource(FileDown, '/file')
 api.add_resource(AddJob, '/jobs/<string:lang>')
