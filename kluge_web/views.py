@@ -5,6 +5,7 @@ import werkzeug
 import cStringIO
 from kluge_web.io.tokenizer_job_pb2 import TokenizerJobMessage
 from kluge_web.io.tokenizer_result_pb2 import TokenizerResultMessage
+import uuid
 
 api = Api()
 blue = Blueprint('main', __name__, None)
@@ -24,8 +25,6 @@ class RawTranscript(Resource):
             return abort(404, message="Language or uuid doesn't exists")
         return transcript
 
-api.add_resource(RawTranscript, '/rawtrans/<string:uid>/<string:lang>')
-
 
 class Transcript(Resource):
     @staticmethod
@@ -34,8 +33,6 @@ class Transcript(Resource):
         if transcript is None:
             return abort(404, message="Language or uuid doesn't exists")
         return transcript
-
-api.add_resource(Transcript, '/transcript/<string:uid>/<string:lang>')
 
 
 class TranscriptChunk(Resource):
@@ -46,8 +43,6 @@ class TranscriptChunk(Resource):
             return abort(404, message="Language, uuid or chunkid doesn't exists")
         return transcript
 
-api.add_resource(TranscriptChunk, '/transcript/<string:uid>/<string:lang>/<string:chunkid>')
-
 
 class TermFreqs(Resource):
     @staticmethod
@@ -57,8 +52,6 @@ class TermFreqs(Resource):
             return abort(404, message="Language or uuid doesn't exist")
         return tfs
 
-api.add_resource(TermFreqs, '/tfs/<string:uid>/<string:lang>')
-
 
 class TermFreqsChunk(Resource):
     @staticmethod
@@ -67,22 +60,6 @@ class TermFreqsChunk(Resource):
         if tfs is None:
             return abort(404, message="Language, uuid or chunkid doesn't exist")
         return tfs
-
-api.add_resource(TermFreqsChunk, '/tfs/<string:uid>/<string:lang>/<int:chunkid>')
-
-# From file uploads
-df_parser = reqparse.RequestParser()
-df_parser.add_argument('words', type=str, action='append')
-
-
-class DocFreqs(Resource):
-    @staticmethod
-    def post():
-        args = df_parser.parse_args()
-        words = args['words']
-        return words, 201
-
-api.add_resource(DocFreqs, '/dfs')
 
 
 class QueueInfo(Resource):
@@ -94,8 +71,6 @@ class QueueInfo(Resource):
             return abort(404, message="Queue name or language doesn't exist")
         return elements
 
-api.add_resource(QueueInfo, '/queue/<string:lang>/<string:qname>')
-
 
 class StatusInfo(Resource):
     @staticmethod
@@ -105,8 +80,6 @@ class StatusInfo(Resource):
             return abort(404, message="Language, uuid or chunkid doesn't exists")
         return status
 
-api.add_resource(StatusInfo, '/status/<string:uid>/<string:chunkid>/<string:lang>')
-
 
 class GetChunks(Resource):
     @staticmethod
@@ -115,8 +88,6 @@ class GetChunks(Resource):
         if chunk_ids is None:
             return abort(404, message="UUID doesn't exists")
         return chunk_ids
-
-api.add_resource(GetChunks, '/doc/<string:uid>/')
 
 
 class GetSpecificChunks(Resource):
@@ -132,8 +103,6 @@ class GetSpecificChunks(Resource):
             return abort(404, message="UUID doesn't exists")
         return chunk_ids
 
-api.add_resource(GetSpecificChunks, '/doc/<string:uid>/<string:ttype>')
-
 
 class GetWordclouds(Resource):
     @staticmethod
@@ -142,8 +111,6 @@ class GetWordclouds(Resource):
         if word_cloud is None:
             return abort(404, message="UUID or lang doesn't exists")
         return word_cloud
-
-api.add_resource(GetWordclouds, '/doc/<string:uid>/<string:lang>/wordcloud')
 
 
 # Mock file download
@@ -158,32 +125,36 @@ class FileDown(Resource):
 upload_parser = reqparse.RequestParser()
 upload_parser.add_argument('bytes', type=werkzeug.datastructures.FileStorage, location='files')
 upload_parser.add_argument('chunkid', type=int, default=1)
+upload_parser.add_argument('uuid', type=str)
 upload_parser.add_argument('name', type=str, required=True)
-upload_parser.add_argument('language', type=str, default='english')
-upload_parser.add_argument('queue', type=str, required=True)
+upload_parser.add_argument('namespace', type=str, default='kluge')
 
 
-# Mock file upload
-class FileUp(Resource):
-    @staticmethod
-    def post():
+# Job upload
+class AddJob(Resource):
+    def __init__(self):
+        self.redis_conn = current_app.kluge_web_datastore
+
+    def post(self, lang):
+        available_languages = set(['english'])
+        if not lang in available_languages:
+            return abort(404, message="Language not available for processing")
+
         args = upload_parser.parse_args()
         bytes = args['bytes']
         chunkid = args['chunkid']
+        uid = args['uuid']
         name = args['name']
-        language = args['language']
-        queue = args['queue']
+        namespace = args['namespace']
 
-        print bytes
+        if not uid:
+            uid = str(uuid.uuid4())
 
-        #data_array = bytearray(bytes.read())
         data_array = bytes.read()
-        #output = cStringIO.StringIO()
-        #output.write(data_array)
 
         job = TokenizerJobMessage()
-        job.uid = name
-        job.language = language
+        job.uid = uid
+        job.language = lang
         job.chunk = chunkid
         job.audio_uri = name
         job.raw_audio = data_array
@@ -191,12 +162,23 @@ class FileUp(Resource):
         job.sample_rate = 8000
         job.sample_size = 8
 
-        redis_connection = current_app.kluge_web_datastore
-        redis_connection.add_job(queue, job)
-        return name, 200
+        self.redis_conn.add_job(uid, chunkid, lang, job, namespace=namespace)
+        return dict(docid=uid, chunkid=chunkid), 200
+
 
 ##
 ## Actually setup the Api resource routing here
 ##
-api.add_resource(FileDown, '/file')
-api.add_resource(FileUp, '/fileup')
+api.add_resource(RawTranscript, '/rawtrans/<string:uid>/<string:lang>')
+api.add_resource(Transcript, '/transcript/<string:uid>/<string:lang>')
+api.add_resource(TranscriptChunk, '/transcript/<string:uid>/<string:lang>/<string:chunkid>')
+api.add_resource(TermFreqs, '/tfs/<string:uid>/<string:lang>')
+api.add_resource(TermFreqsChunk, '/tfs/<string:uid>/<string:lang>/<int:chunkid>')
+api.add_resource(QueueInfo, '/queue/<string:lang>/<string:qname>')
+api.add_resource(StatusInfo, '/status/<string:uid>/<string:chunkid>/<string:lang>')
+api.add_resource(GetChunks, '/doc/<string:uid>/')
+api.add_resource(GetSpecificChunks, '/doc/<string:uid>/<string:ttype>')
+api.add_resource(GetWordclouds, '/doc/<string:uid>/<string:lang>/wordcloud')
+
+#api.add_resource(FileDown, '/file')
+api.add_resource(AddJob, '/jobs/<string:lang>')
