@@ -106,7 +106,7 @@ class KlugeRedis():
         return chunk_ids
 
     # maybe
-    def get_word_cloud(self, uid, lang, max_words=30, doc_count=14428):
+    def get_word_cloud(self, uid, lang, max_words=50, doc_count=14428):
         tf_keyname = "kluge:stt:tf:%s:%s" % (lang, uid)
         df_keyname = "kluge:stt:df:%s:static" % lang
 
