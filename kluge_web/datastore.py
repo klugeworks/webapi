@@ -107,8 +107,7 @@ class KlugeRedis():
     # maybe
     def get_word_cloud(self, uid, lang):
         tf_keyname = "kluge:stt:tf:%s:%s" % (lang, uid)
-        df_keyname = "kluge:stt:df:%s:nil" % lang
-        aprox_df_keyname = "q:done:kluge:stt:%s" % lang
+        df_keyname = "kluge:stt:df:%s:static" % lang
 
         if not self.key_exists(tf_keyname):
             return None
@@ -122,7 +121,7 @@ class KlugeRedis():
             dfword_count = dfword_counts[idx]
             tf_df[tfword] = dict(tf=int(tfs[tfword]), df=int(dfword_count))
 
-        doc_count = self.conn.llen(aprox_df_keyname)
+        doc_count = 14428
         wordcloud_vals = {
             "doc_count": doc_count,
             "tokens": tf_df,
@@ -133,8 +132,7 @@ class KlugeRedis():
     # maybe
     def get_word_cloud_chunk(self, uid, lang, chunkid):
         tf_keyname = "kluge:stt:tf:%s:%s:%s" % (lang, uid, chunkid)
-        df_keyname = "kluge:stt:df:%s:nil" % lang
-        aprox_df_keyname = "q:done:kluge:stt:%s" % lang
+        df_keyname = "kluge:stt:df:%s:static" % lang
 
         if not self.key_exists(tf_keyname):
             return None
@@ -149,7 +147,7 @@ class KlugeRedis():
             dfword_count = dfword_counts[idx]
             tf_df[tfword] = dict(tf=int(tfs[tfword]), df=int(dfword_count))
 
-        doc_count = self.conn.llen(aprox_df_keyname)
+        doc_count = 14428
         wordcloud_vals = {
             "doc_count": doc_count,
             "tokens": tf_df,
