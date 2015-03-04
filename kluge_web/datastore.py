@@ -1,8 +1,9 @@
+from __future__ import division
 import redis
 from kluge_web.io.tokenizer_result_pb2 import TokenizerResultMessage
 from kluge_web.io.tokenizer_job_pb2 import TokenizerJobMessage
 from collections import defaultdict
-
+import math
 
 class KlugeRedis():
     def __init__(self, hostname, port):
@@ -105,7 +106,7 @@ class KlugeRedis():
         return chunk_ids
 
     # maybe
-    def get_word_cloud(self, uid, lang):
+    def get_word_cloud(self, uid, lang, max_words=30, doc_count=14428):
         tf_keyname = "kluge:stt:tf:%s:%s" % (lang, uid)
         df_keyname = "kluge:stt:df:%s:static" % lang
 
@@ -115,15 +116,25 @@ class KlugeRedis():
             return None
         tfs = self.conn.hgetall(tf_keyname)
         tf_df = defaultdict(dict)
+
+        temp_tf_df = []
+
         tf_keys = tfs.keys()
         dfword_counts = self.conn.hmget(df_keyname, *tf_keys)
         for idx, tfword in enumerate(tf_keys):
             dfword_count = dfword_counts[idx]
             try:
-                tf_df[tfword] = dict(tf=int(tfs[tfword]), df=int(dfword_count))
+                tf = int(tfs[tfword])
+                df = int(dfword_count)
+                tfidf = tf * math.log10(doc_count/df)
+                temp_tf_df.append((tfword, int(tfs[tfword]), int(dfword_count), tfidf))
             except Exception, e:
                 print str(e)
-        doc_count = 14428
+
+        sorted_tf_df = sorted(temp_tf_df, key=lambda tup: tup[3], reverse=True)
+        for tup in sorted_tf_df[:max_words]:
+            tf_df[tup[0]] = dict(tf=tup[1], df=tup[2], tfidf=tup[3])
+
         wordcloud_vals = {
             "doc_count": doc_count,
             "tokens": tf_df,
@@ -132,7 +143,7 @@ class KlugeRedis():
         return wordcloud_vals
 
     # maybe
-    def get_word_cloud_chunk(self, uid, lang, chunkid):
+    def get_word_cloud_chunk(self, uid, lang, chunkid, max_words=30, doc_count=14428):
         tf_keyname = "kluge:stt:tf:%s:%s:%s" % (lang, uid, chunkid)
         df_keyname = "kluge:stt:df:%s:static" % lang
 
@@ -143,15 +154,24 @@ class KlugeRedis():
         tfs = self.conn.hgetall(tf_keyname)
         tf_df = defaultdict(dict)
 
+        temp_tf_df = []
+
         tf_keys = tfs.keys()
         dfword_counts = self.conn.hmget(df_keyname, *tf_keys)
         for idx, tfword in enumerate(tf_keys):
             dfword_count = dfword_counts[idx]
             try:
-                tf_df[tfword] = dict(tf=int(tfs[tfword]), df=int(dfword_count))
+                tf = int(tfs[tfword])
+                df = int(dfword_count)
+                tfidf = tf * math.log10(doc_count/df)
+                temp_tf_df.append((tfword, int(tfs[tfword]), int(dfword_count), tfidf))
             except Exception, e:
                 print str(e)
-        doc_count = 14428
+
+        sorted_tf_df = sorted(temp_tf_df, key=lambda tup: tup[3], reverse=True)
+        for tup in sorted_tf_df[:max_words]:
+            tf_df[tup[0]] = dict(tf=tup[1], df=tup[2], tfidf=tup[3])
+
         wordcloud_vals = {
             "doc_count": doc_count,
             "tokens": tf_df,
