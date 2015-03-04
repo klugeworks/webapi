@@ -2,29 +2,6 @@ import redis
 from kluge_web.io.tokenizer_result_pb2 import TokenizerResultMessage
 from kluge_web.io.tokenizer_job_pb2 import TokenizerJobMessage
 
-# Extremely lightweight dictionary wrapper
-class TodoDAO():
-    def __init__(self):
-        self.todo_list = dict()
-
-    def set_todos(self, todos):
-        self.todo_list = todos
-
-    def clear_todos(self):
-        self.todo_list = dict()
-
-
-# Exact same object to enable factory testing
-class TodoDAO2():
-    def __init__(self):
-        self.todo_list = dict()
-
-    def set_todos(self, todos):
-        self.todo_list = todos
-
-    def clear_todos(self):
-        self.todo_list = dict()
-
 
 class KlugeRedis():
     def __init__(self, hostname, port):
@@ -32,6 +9,7 @@ class KlugeRedis():
 
     def get_transcripts(self, queue, num=-1):
         # pull all elements off the queue
+        num = max(num, -1)
         tok_results = []
         elements = self.conn.lrange(queue, 0, num)
         for element in elements:
@@ -42,6 +20,7 @@ class KlugeRedis():
 
     def get_jobs(self, queue, num=-1):
         # pull all elements off the queue
+        num = max(num, -1)
         jobs = []
         elements = self.conn.lrange(queue, 0, num)
         for element in elements:
@@ -49,3 +28,6 @@ class KlugeRedis():
             job.ParseFromString(element)
             jobs.append(job)
         return jobs
+
+    def add_job(self, queue, job_msg):
+        self.conn.lpush(queue, job_msg.SerializeToString())

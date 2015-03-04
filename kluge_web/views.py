@@ -3,8 +3,8 @@ from flask import Blueprint, current_app, send_file
 from flask_restful import abort, Resource, reqparse, Api
 import werkzeug
 import cStringIO
-import redis
 from kluge_web.io.tokenizer_job_pb2 import TokenizerJobMessage
+from kluge_web.io.tokenizer_result_pb2 import TokenizerResultMessage
 
 api = Api()
 blue = Blueprint('main', __name__, None)
@@ -12,7 +12,7 @@ blue = Blueprint('main', __name__, None)
 
 @blue.route('/')
 def index():
-    conf_app_name = current_app.config.get('KLUGE_WEB_APP_NAME', 'ASR transcript demo\n')
+    conf_app_name = current_app.config.get('KLUGE_WEB_APP_NAME', 'ASR transcript demo')
     return conf_app_name
 
 
@@ -25,23 +25,45 @@ class FileDown(Resource):
         return send_file(outbound_file)
 
 # From file uploads
-parser2 = reqparse.RequestParser()
-parser2.add_argument('filein', type=werkzeug.datastructures.FileStorage, location='files')
-parser2.add_argument('docid', type=str, location='form')
+upload_parser = reqparse.RequestParser()
+upload_parser.add_argument('bytes', type=werkzeug.datastructures.FileStorage, location='files')
+upload_parser.add_argument('chunkid', type=int, default=1)
+upload_parser.add_argument('name', type=str, required=True)
+upload_parser.add_argument('language', type=str, default='english')
+upload_parser.add_argument('queue', type=str, required=True)
 
 
 # Mock file upload
 class FileUp(Resource):
     @staticmethod
     def post():
-        args = parser2.parse_args()
-        fstore = args['filein']
-        docid = args['docid']
-        data_array = bytearray(fstore.read())
-        output = cStringIO.StringIO()
-        output.write(data_array)
-        output.seek(0)
-        return send_file(output)
+        args = upload_parser.parse_args()
+        bytes = args['bytes']
+        chunkid = args['chunkid']
+        name = args['name']
+        language = args['language']
+        queue = args['queue']
+
+        print bytes
+
+        #data_array = bytearray(bytes.read())
+        data_array = bytes.read()
+        #output = cStringIO.StringIO()
+        #output.write(data_array)
+
+        job = TokenizerJobMessage()
+        job.uid = name
+        job.language = language
+        job.chunk = chunkid
+        job.audio_uri = name
+        job.raw_audio = data_array
+        job.format = TokenizerJobMessage.UL
+        job.sample_rate = 8000
+        job.sample_size = 8
+
+        redis_connection = current_app.kluge_web_datastore
+        redis_connection.add_job(queue, job)
+        return name, 200
 
 ##
 ## Actually setup the Api resource routing here
@@ -51,9 +73,9 @@ api.add_resource(FileUp, '/fileup')
 
 
 # Transcripts argparse
-transcripts_args = reqparse.RequestParser()
-transcripts_args.add_argument('queue', type=str, required=True)
-transcripts_args.add_argument('num', type=int, default=-1)
+transcripts_parser = reqparse.RequestParser()
+transcripts_parser.add_argument('queue', type=str, required=True)
+transcripts_parser.add_argument('num', type=int, default=-1)
 
 
 # Transcripts
@@ -68,7 +90,7 @@ class Transcripts(Resource):
 
     @staticmethod
     def post():
-        args = transcripts_args.parse_args()
+        args = transcripts_parser.parse_args()
         queue = args['queue']
         num = args['num']
         redis_connection = current_app.kluge_web_datastore
@@ -78,9 +100,9 @@ class Transcripts(Resource):
 
 
 # Transcripts argparse
-jobs_args = reqparse.RequestParser()
-jobs_args.add_argument('queue', type=str, required=True)
-jobs_args.add_argument('num', type=int, default=-1)
+jobs_parser = reqparse.RequestParser()
+jobs_parser.add_argument('queue', type=str, required=True)
+jobs_parser.add_argument('num', type=int, default=-1)
 
 
 # Jobs
@@ -95,7 +117,7 @@ class Jobs(Resource):
 
     @staticmethod
     def post():
-        args = jobs_args.parse_args()
+        args = jobs_parser.parse_args()
         queue = args['queue']
         num = args['num']
         redis_connection = current_app.kluge_web_datastore
