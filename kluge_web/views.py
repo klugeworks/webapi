@@ -126,7 +126,7 @@ class GetWordcloudsChunk(Resource):
 upload_parser = reqparse.RequestParser()
 upload_parser.add_argument('bytes', type=werkzeug.datastructures.FileStorage, location='files')
 upload_parser.add_argument('chunkid', type=int, default=1)
-upload_parser.add_argument('uuid', type=str)
+upload_parser.add_argument('docid', type=str)
 upload_parser.add_argument('name', type=str, required=True)
 upload_parser.add_argument('namespace', type=str, default='kluge')
 
@@ -144,7 +144,7 @@ class AddJob(Resource):
         args = upload_parser.parse_args()
         bytes = args['bytes']
         chunkid = args['chunkid']
-        uid = args['uuid']
+        uid = args['docid']
         name = args['name']
         namespace = args['namespace']
 
