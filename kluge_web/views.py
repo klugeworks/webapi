@@ -16,6 +16,98 @@ def index():
     return conf_app_name
 
 
+class RawTranscript(Resource):
+    @staticmethod
+    def get(uid, lang):
+        transcript = current_app.kluge_web_datastore.get_test_transcript(lang, uid)
+        if transcript is None:
+            return abort(404, message="Language or uuid doesn't exists")
+        return transcript
+
+api.add_resource(RawTranscript, '/rawtrans/<string:uid>/<string:lang>')
+
+
+class Transcript(Resource):
+    @staticmethod
+    def get(uid, lang):
+        transcript = current_app.kluge_web_datastore.get_transcript(lang, uid)
+        if transcript is None:
+            return abort(404, message="Language or uuid doesn't exists")
+        return transcript
+
+api.add_resource(Transcript, '/transcript/<string:uid>/<string:lang>')
+
+
+class TranscriptChunk(Resource):
+    @staticmethod
+    def get(uid, lang, chunkid):
+        transcript = current_app.kluge_web_datastore.get_transcript_chunk(uid, lang, chunkid)
+        if transcript is None:
+            return abort(404, message="Language, uuid or chunkid doesn't exists")
+        return transcript
+
+api.add_resource(TranscriptChunk, '/transcript/<string:uid>/<string:lang>/<string:chunkid>')
+
+
+class TermFreqs(Resource):
+    @staticmethod
+    def get(uid, lang):
+        tfs = current_app.kluge_web_datastore.get_term_freqs(lang, uid)
+        if tfs is None:
+            return abort(404, message="Language or uuid doesn't exist")
+        return tfs
+
+api.add_resource(TermFreqs, '/tfs/<string:uid>/<string:lang>')
+
+
+class TermFreqsChunk(Resource):
+    @staticmethod
+    def get(uid, lang, chunkid):
+        tfs = current_app.kluge_web_datastore.get_term_freqs_chunk(uid, lang, chunkid)
+        if tfs is None:
+            return abort(404, message="Language, uuid or chunkid doesn't exist")
+        return tfs
+
+api.add_resource(TermFreqsChunk, '/tfs/<string:uid>/<string:lang>/<int:chunkid>')
+
+# From file uploads
+df_parser = reqparse.RequestParser()
+df_parser.add_argument('words', type=str, action='append')
+
+
+class DocFreqs(Resource):
+    @staticmethod
+    def post():
+        args = df_parser.parse_args()
+        words = args['words']
+        return words, 201
+
+api.add_resource(DocFreqs, '/dfs')
+
+
+class QueueInfo(Resource):
+    @staticmethod
+    def get(lang, qname):
+        elements = current_app.kluge_web_datastore.get_queue_info(qname, lang)
+        # Elements is none when the key is not found
+        if elements is None:
+            return abort(404, message="Queue name or language doesn't exist")
+        return elements
+
+api.add_resource(QueueInfo, '/queue/<string:lang>/<string:qname>')
+
+
+class StatusInfo(Resource):
+    @staticmethod
+    def get(uid, chunkid, lang):
+        status = current_app.kluge_web_datastore.get_status_info(uid, chunkid, lang)
+        if status is None:
+            return abort(404, message="Language, uuid or chunkid doesn't exists")
+        return status
+
+api.add_resource(StatusInfo, '/status/<string:uid>/<string:chunkid>/<string:lang>')
+
+
 # Mock file download
 class FileDown(Resource):
     @staticmethod
@@ -70,60 +162,3 @@ class FileUp(Resource):
 ##
 api.add_resource(FileDown, '/file')
 api.add_resource(FileUp, '/fileup')
-
-
-# Transcripts argparse
-transcripts_parser = reqparse.RequestParser()
-transcripts_parser.add_argument('queue', type=str, required=True)
-transcripts_parser.add_argument('num', type=int, default=-1)
-
-
-# Transcripts
-#   pull all transcripts on completed redis queue
-class Transcripts(Resource):
-    @staticmethod
-    def get():
-        redis_connection = current_app.kluge_web_datastore
-        transcripts = redis_connection.get_transcripts('english_results', 5)
-        words = [(t.uid, t.word_transcript) for t in transcripts]
-        return words, 201
-
-    @staticmethod
-    def post():
-        args = transcripts_parser.parse_args()
-        queue = args['queue']
-        num = args['num']
-        redis_connection = current_app.kluge_web_datastore
-        transcripts = redis_connection.get_transcripts(queue, num - 1)
-        words = [(t.uid, t.word_transcript) for t in transcripts]
-        return words, 201
-
-
-# Transcripts argparse
-jobs_parser = reqparse.RequestParser()
-jobs_parser.add_argument('queue', type=str, required=True)
-jobs_parser.add_argument('num', type=int, default=-1)
-
-
-# Jobs
-#   pull all jobs on task redis queue
-class Jobs(Resource):
-    @staticmethod
-    def get():
-        redis_connection = current_app.kluge_web_datastore
-        jobs = redis_connection.get_jobs('english_audio', 5)
-        job_ids = [(j.uid, TokenizerJobMessage.AudioFormat.Name(j.format)) for j in jobs]
-        return job_ids
-
-    @staticmethod
-    def post():
-        args = jobs_parser.parse_args()
-        queue = args['queue']
-        num = args['num']
-        redis_connection = current_app.kluge_web_datastore
-        jobs = redis_connection.get_jobs(queue, num - 1)
-        job_ids = [(j.uid, TokenizerJobMessage.AudioFormat.Name(j.format)) for j in jobs]
-        return job_ids, 201
-
-api.add_resource(Transcripts, '/transcripts')
-api.add_resource(Jobs, '/jobs')
