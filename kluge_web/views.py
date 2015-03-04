@@ -122,15 +122,7 @@ class GetWordcloudsChunk(Resource):
         return word_cloud
 
 
-# Mock file download
-class FileDown(Resource):
-    @staticmethod
-    def get():
-        src_directory = os.path.dirname(os.path.realpath(__file__))
-        outbound_file = "%s/%s" % (src_directory, "__init__.py")
-        return send_file(outbound_file)
-
-# From file uploads
+# For file uploads
 upload_parser = reqparse.RequestParser()
 upload_parser.add_argument('bytes', type=werkzeug.datastructures.FileStorage, location='files')
 upload_parser.add_argument('chunkid', type=int, default=1)
@@ -174,7 +166,6 @@ class AddJob(Resource):
         self.redis_conn.add_job(uid, chunkid, lang, job, namespace=namespace)
         return dict(docid=uid, chunkid=chunkid), 200
 
-
 ##
 ## Actually setup the Api resource routing here
 ##
@@ -190,5 +181,4 @@ api.add_resource(GetSpecificChunks, '/doc/<string:uid>/<string:ttype>')
 api.add_resource(GetWordclouds, '/doc/<string:uid>/<string:lang>/wordcloud')
 api.add_resource(GetWordcloudsChunk, '/doc/<string:uid>/<string:lang>/wordcloud/<int:chunkid>')
 
-#api.add_resource(FileDown, '/file')
 api.add_resource(AddJob, '/jobs/<string:lang>')
