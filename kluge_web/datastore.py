@@ -108,32 +108,51 @@ class KlugeRedis():
     def get_word_cloud(self, uid, lang):
         tf_keyname = "kluge:stt:tf:%s:%s" % (lang, uid)
         df_keyname = "kluge:stt:df:%s:nil" % lang
+        aprox_df_keyname = "q:done:kluge:stt:%s" % lang
+
         if not self.key_exists(tf_keyname):
             return None
         if not self.key_exists(df_keyname):
             return None
         tfs = self.conn.hgetall(tf_keyname)
-        tf_df = defaultdict(tuple)
+        tf_df = defaultdict(dict)
         tf_keys = tfs.keys()
         dfword_counts = self.conn.hmget(df_keyname, *tf_keys)
         for idx, tfword in enumerate(tf_keys):
             dfword_count = dfword_counts[idx]
-            tf_df[tfword] = (int(tfs[tfword]), int(dfword_count))
-        return tf_df
+            tf_df[tfword] = dict(tf=int(tfs[tfword]), df=int(dfword_count))
+
+        doc_count = self.conn.llen(aprox_df_keyname)
+        wordcloud_vals = {
+            "doc_count": doc_count,
+            "tokens": tf_df,
+        }
+
+        return wordcloud_vals
 
     # maybe
     def get_word_cloud_chunk(self, uid, lang, chunkid):
         tf_keyname = "kluge:stt:tf:%s:%s:%s" % (lang, uid, chunkid)
         df_keyname = "kluge:stt:df:%s:nil" % lang
+        aprox_df_keyname = "q:done:kluge:stt:%s" % lang
+
         if not self.key_exists(tf_keyname):
             return None
         if not self.key_exists(df_keyname):
             return None
         tfs = self.conn.hgetall(tf_keyname)
-        tf_df = defaultdict(tuple)
+        tf_df = defaultdict(dict)
+
         tf_keys = tfs.keys()
         dfword_counts = self.conn.hmget(df_keyname, *tf_keys)
         for idx, tfword in enumerate(tf_keys):
             dfword_count = dfword_counts[idx]
-            tf_df[tfword] = (int(tfs[tfword]), int(dfword_count))
-        return tf_df
+            tf_df[tfword] = dict(tf=int(tfs[tfword]), df=int(dfword_count))
+
+        doc_count = self.conn.llen(aprox_df_keyname)
+        wordcloud_vals = {
+            "doc_count": doc_count,
+            "tokens": tf_df,
+        }
+
+        return wordcloud_vals
