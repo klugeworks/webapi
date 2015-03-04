@@ -81,3 +81,19 @@ class KlugeRedis():
             return None
         tfs = self.conn.hgetall(keyname)
         return tfs
+
+    # maybe
+    def get_job_chunks(self, uid):
+        keyname = "kluge:stt:pb:job:%s" % (uid)
+        if not self.key_exists(keyname):
+            return None
+        chunk_ids = self.conn.hkeys(keyname)
+        return chunk_ids
+
+    # maybe
+    def get_result_chunks(self, uid):
+        keyname = "kluge:stt:pb:result:%s" % (uid)
+        if not self.key_exists(keyname):
+            return None
+        chunk_ids = self.conn.hkeys(keyname)
+        return chunk_ids

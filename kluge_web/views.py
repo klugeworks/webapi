@@ -108,6 +108,33 @@ class StatusInfo(Resource):
 api.add_resource(StatusInfo, '/status/<string:uid>/<string:chunkid>/<string:lang>')
 
 
+class GetChunks(Resource):
+    @staticmethod
+    def get(uid):
+        chunk_ids = current_app.kluge_web_datastore.get_job_chunks(uid)
+        if chunk_ids is None:
+            return abort(404, message="UUID doesn't exists")
+        return chunk_ids
+
+api.add_resource(GetChunks, '/<string:uid>/')
+
+
+class GetSpecificChunks(Resource):
+    @staticmethod
+    def get(uid, ttype):
+        if ttype == "jobs":
+            chunk_ids = current_app.kluge_web_datastore.get_job_chunks(uid)
+        elif ttype == "results":
+            chunk_ids = current_app.kluge_web_datastore.get_result_chunks(uid)
+        else:
+            chunk_ids = []
+        if chunk_ids is None:
+            return abort(404, message="UUID doesn't exists")
+        return chunk_ids
+
+api.add_resource(GetSpecificChunks, '/<string:uid>/<string:ttype>')
+
+
 # Mock file download
 class FileDown(Resource):
     @staticmethod
