@@ -8,8 +8,14 @@ class KlugeRedis():
     def __init__(self, hostname, port):
         self.conn = redis.StrictRedis(host=hostname, port=port, db=0)
 
-    def add_job(self, queue, job_msg):
-        self.conn.lpush(queue, job_msg.SerializeToString())
+    def add_job(self, unique_id, chunk_count, lang, job_msg, namespace="kluge"):
+        self.conn.hset("%s:stt:pb:job:%s" % (namespace, unique_id), str(chunk_count), job_msg.SerializeToString())
+
+        self.conn.lpush("q:in:%s:stt:%s" % (namespace, lang), "%s:%s" % (unique_id, str(chunk_count)))
+
+        self.conn.hset("q:stat:%s:stt:%s" % (namespace, lang),
+                       "%s:%s" % (unique_id, str(chunk_count)),
+                       "q:in:%s:stt:%s" % (namespace, lang))
 
     # done
     def key_exists(self, keyname):
