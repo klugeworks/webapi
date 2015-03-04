@@ -1,10 +1,14 @@
 from flask import Flask
 from kluge_web.views import blue, api
 import datastore
+import os
 
 
 def create_app(cfg_module=None, cfg_overrides=None):
-    app = Flask('kluge_web', static_folder="./static", static_url_path="/demo")
+    # Override hosting for default static pages and .js
+    static_files = os.getenv('KLUGE_STATIC_PAGES', "./static")
+
+    app = Flask('kluge_web', static_folder=static_files, static_url_path="/demo")
     api.init_app(app)
 
     # Dynamically load configuration, with potential overrides
