@@ -147,16 +147,6 @@ api.add_resource(GetWordclouds, '/doc/<string:uid>/<string:lang>/wordcloud')
 
 
 # Mock file download
-#class DemoPage(Resource):
-#    @staticmethod
-#    def get():
-#        src_directory = os.path.dirname(os.path.realpath("./static"))
-#        return send_from_directory(src_directory, "index.html")
-
-#api.add_resource(DemoPage, '/demo')
-
-
-# Mock file download
 class FileDown(Resource):
     @staticmethod
     def get():
