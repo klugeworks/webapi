@@ -119,8 +119,10 @@ class KlugeRedis():
         dfword_counts = self.conn.hmget(df_keyname, *tf_keys)
         for idx, tfword in enumerate(tf_keys):
             dfword_count = dfword_counts[idx]
-            tf_df[tfword] = dict(tf=int(tfs[tfword]), df=int(dfword_count))
-
+            try:
+                tf_df[tfword] = dict(tf=int(tfs[tfword]), df=int(dfword_count))
+            except Exception, e:
+                print str(e)
         doc_count = 14428
         wordcloud_vals = {
             "doc_count": doc_count,
@@ -145,8 +147,10 @@ class KlugeRedis():
         dfword_counts = self.conn.hmget(df_keyname, *tf_keys)
         for idx, tfword in enumerate(tf_keys):
             dfword_count = dfword_counts[idx]
-            tf_df[tfword] = dict(tf=int(tfs[tfword]), df=int(dfword_count))
-
+            try:
+                tf_df[tfword] = dict(tf=int(tfs[tfword]), df=int(dfword_count))
+            except Exception, e:
+                print str(e)
         doc_count = 14428
         wordcloud_vals = {
             "doc_count": doc_count,
