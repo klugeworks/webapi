@@ -18,7 +18,11 @@ def set_statsd(statsd_server, statsd_port=8125):
     hostname = server[0]
     if len(server) == 2:
         port = int(server[1])
-    _statsd = statsd.StatsClient(hostname, port, prefix='kluge-web')
+    try:
+        _statsd = statsd.StatsClient(hostname, port, prefix='kluge-web')
+    except Exception, e:
+        logger.error(str(e))
+        return
     logger.debug("Aggregating statistics to {0}:{1}".format(hostname, port))
 
 
