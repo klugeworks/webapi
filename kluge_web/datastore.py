@@ -39,7 +39,7 @@ class KlugeRedis():
         elements = self.conn.lrange(keyname, 0, -1)
         end = time.time()
         stats.incr("get_queue_info")
-        stats.timing("get_queue_ingo", end - start)
+        stats.timing("get_queue_info", end - start)
         return elements
 
     # done
