@@ -5,5 +5,6 @@ setup(
     version='1.0',
     packages=find_packages(exclude=['tests']),
     test_suite="tests",
-    install_requires=['tornado', 'redis', 'Flask', 'Flask-Testing', 'Flask-RESTful']
+    scripts=["scripts/add_kluge_docs.sh"],
+    install_requires=['protobuf', 'tornado', 'redis', 'Flask', 'Flask-Testing', 'Flask-RESTful']
 )
