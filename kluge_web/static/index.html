@@ -1,1 +1,491 @@
-ASR Demo Page
+<!-- comment -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>kluge stt: document data</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link href="//netdna.bootstrapcdn.com/bootstrap/2.2.2/css/bootstrap.min.css" rel="stylesheet">
+  <link href="//netdna.bootstrapcdn.com/bootstrap/2.2.2/css/bootstrap-responsive.min.css" rel="stylesheet">
+  <style>
+  @media (min-width: 980px) {
+    body { padding-top: 60px; }
+  }
+
+  *[hidden] {
+    display: none;
+  }
+
+  #doc_container {
+    display: none;
+  }
+
+  .document_button {
+    cursor: hand;
+    cursor: pointer;
+  }
+
+  .document_button:hover {
+    text-decoration: underline;
+  }
+
+  .chunk {
+    margin-left: 10px;
+    margin-right: 10px;
+    display:inline-block;
+    cursor: hand;
+    cursor: pointer;
+  }
+
+  .chunk:hover {
+    text-decoration: underline;
+  }
+
+  #document_id_lead {
+    cursor: hand;
+    cursor: pointer;
+  }
+
+  #canvas-container {
+    overflow-x: auto;
+    overflow-y: visible;
+    position: relative;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+  .canvas {
+    display: block;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .canvas.hide {
+    display: none;
+  }
+
+  #html-canvas > span {
+    transition: text-shadow 1s ease, opacity 1s ease;
+    -webkit-transition: text-shadow 1s ease, opacity 1s ease;
+    -ms-transition: text-shadow 1s ease, opacity 1s ease;
+  }
+
+  #html-canvas > span:hover {
+    text-shadow: 0 0 10px, 0 0 10px #fff, 0 0 10px #fff, 0 0 10px #fff;
+    opacity: 0.5;
+  }
+
+  #box {
+    pointer-events: none;
+    position: absolute;
+    box-shadow: 0 0 200px 200px rgba(255, 255, 255, 0.5);
+    border-radius: 50px;
+    cursor: pointer;
+  }
+
+  textarea {
+    height: 20em;
+  }
+  #config-option {
+    font-family: monospace;
+  }
+  select { width: 100%; }
+
+  #loading {
+    animation: blink 2s infinite;
+    -webkit-animation: blink 2s infinite;
+  }
+  @-webkit-keyframes blink {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes blink {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  </style>
+</head>
+<body>
+  <div class="navbar navbar-fixed-top navbar-inverse">
+    <div class="navbar-inner">
+      <div class="container">
+        <a class="brand" href="index.html">kluge stt</a>
+        <ul class="nav">
+          <li id="overview_header" class="active"><a id="overview_button" href="#" onclick="return false;">Overview</a></li>
+          <li id="document_header" class=""><a id="doc_button" href="#" onclick="return false;">Document</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="container" id="summary_container">
+    <p class="lead"><strong>kluge stt</strong>: <span>Processed Documents</span></p>
+    <div class="row">
+      <div class="span12" id="doc_summary">
+      </div>
+    </div>
+  </div>
+  <div class="container" id="doc_container">
+    <p class="lead"><strong>kluge stt</strong>: <span id="document_id_lead">document id</span></p>
+    <div id="not-supported" class="alert" hidden>
+      <strong>Your browser is not supported.</strong>
+    </div>
+    <form id="form" method="get" action="">
+      <div class="row">
+        <div class="span12" id="canvas-container">
+          <canvas id="canvas" class="canvas"></canvas>
+          <div id="html-canvas" class="canvas hide"></div>
+        </div>
+      </div>
+    </form>
+    <div class="row">
+      <div class="span4"><h4>Chunks</h4></div>
+      <div class="span12" id="chunk_container"></div>
+    </div>
+    <div class="row">
+      <div class="span4"><h4>Transcript</h4></div>
+      <div class="span12" id="transcript_container"></div>
+    </div>
+  </div>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.2.2/bootstrap.min.js"></script>
+  <script src="js/wordcloud2.js"></script>
+  <script>
+  'use strict';
+
+  jQuery(function ($) {
+    var $form = $('#form');
+    var $canvas = $('#canvas');
+    var $htmlCanvas = $('#html-canvas');
+    var $canvasContainer = $('#canvas-container');
+    var $loading = $('#loading');
+
+    var $dppx = '1';
+    var $css = 'https://fonts.googleapis.com/css?family=Libre+Baskerville:700';
+    var $webfontLink = $('#link-webfont');
+
+    if (!WordCloud.isSupported) {
+      $('#not-supported').prop('hidden', false);
+      $form.find('textarea, input, select, button').prop('disabled', true);
+      return;
+    }
+
+    var $box = $('<div id="box" hidden />');
+    $canvasContainer.append($box);
+    window.drawBox = function drawBox(item, dimension) {
+      if (!dimension) {
+        $box.prop('hidden', true);
+
+        return;
+      }
+
+      $box.prop('hidden', false);
+      $box.css({
+        left: dimension.x / dppx + 'px',
+        top: dimension.y / dppx + 'px',
+        width: dimension.w / dppx + 'px',
+        height: dimension.h / dppx + 'px'
+      });
+    };
+
+    // Update the default value if we are running in a hdppx device
+    if (('devicePixelRatio' in window) &&
+        window.devicePixelRatio !== 1) {
+      $dppx = window.devicePixelRatio;
+    }
+
+    $canvas.on('wordcloudstop', function wordcloudstopped(evt) {
+      $loading.prop('hidden', true);
+    });
+
+    $('#btn-canvas').on('click', function showCanvas(evt) {
+      $canvas.removeClass('hide');
+      $htmlCanvas.addClass('hide');
+      $('#btn-canvas').prop('disabled', true);
+      $('#btn-html-canvas').prop('disabled', false);
+    });
+
+    $('#btn-html-canvas').on('click', function showCanvas(evt) {
+      $canvas.addClass('hide');
+      $htmlCanvas.removeClass('hide');
+      $('#btn-canvas').prop('disabled', false);
+      $('#btn-html-canvas').prop('disabled', true);
+    });
+
+    $("body").on('click', '.chunk', function() {
+      var chunk = $(this).html();
+      update_doc_id(parentDocId, chunk);
+      update_word_cloud(server, parentDocId, chunk);
+      update_transcript(server, parentDocId, chunk);
+    });
+
+    $("body").on('click', '.document_button', function updateContent() {
+      var doc_id = $(this).html();
+      switch_to_doc(doc_id);
+    });
+
+    $("body").on('click', '#overview_button', function updateContent() {
+      switch_to_summary();
+    });
+
+    $("body").on('click', '#doc_button', function updateContent() {
+      switch_to_doc(docId);
+    });
+
+    var switch_to_summary = function switch_to_summary() {
+      $("#summary_container").show();
+      $("#doc_container").hide();
+      $("#overview_header").toggleClass("active");
+      $("#document_header").toggleClass("active");
+    }
+
+    var switch_to_doc = function switch_to_doc(docId) {
+      update_doc_id(docId, chunk);
+      update_word_cloud(server, docId, chunk);
+      update_transcript(server, docId, chunk);
+      update_chunks(server, docId);
+      parentDocId = docId;
+      $("#summary_container").hide();
+      $("#doc_container").show();
+      $("#overview_header").toggleClass("active");
+      $("#document_header").toggleClass("active");
+    }
+
+    $("body").on('click', '#document_id_lead', function updateContent() {
+      var chunk = $(this).html();
+      update_doc_id(parentDocId, null);
+      update_chunks(server, parentDocId);
+      update_word_cloud(server, parentDocId, null);
+      update_transcript(server, parentDocId, null);
+    });
+
+    $('#btn-canvas').prop('disabled', true);
+    $('#btn-html-canvas').prop('disabled', false);
+
+    var $examples = $('#examples');
+    $examples.on('change', function loadExample(evt) {
+      changeHash(this.value);
+
+      this.selectedIndex = 0;
+      $examples.blur();
+    });
+
+    var get_documents = function get_documents(server) {
+      console.log('get documents called.')
+      var url = "http://"+server+"/queue/english/done";
+      $.ajax({
+        url : url,
+        type: "GET",
+        timeout: 5000,
+        dataType: 'json',
+        success:function(data, textStatus, jqXHR) {
+          var chunks = '';
+          var num_chunks = data.map(Number).sort(function(a, b){return a-b});
+          var doc_ids = [];
+          for (var chunk in data) {
+            var s_chunk = data[chunk].split(":");
+            doc_ids.push(s_chunk[0]);
+          }
+          doc_ids = jQuery.unique(doc_ids);
+          for (var doc in doc_ids) {
+            chunks += '<div class="document_button">' + doc_ids[doc] + '</div>';
+          }
+          $('#doc_summary').html(chunks);
+          //window.setTimeout(get_documents, 10000);
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+          console.log("Unable to get chunk list")
+          //window.setTimeout(get_documents, 10000);
+        }
+      });
+    };
+
+    var update_chunks = function update_chunks(server, docId) {
+      console.log('update chunks called.')
+      var url = "http://"+server+"/chunks/"+docId;
+      $.ajax({
+        url : url,
+        type: "GET",
+        timeout: 5000,
+        dataType: 'json',
+        success:function(data, textStatus, jqXHR) {
+          var chunks = '';
+          var num_chunks = data.map(Number).sort(function(a, b){return a-b});
+          for (var chunk in num_chunks) {
+            chunks += '<div class="chunk">' + num_chunks[chunk] + '</div>';
+          }
+          $('#chunk_container').html(chunks);
+          //window.setTimeout(update_chunks, 10000);
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+          console.log("Unable to get chunk list")
+          //window.setTimeout(update_chunks, 10000);
+        }
+      });
+    };
+
+    var update_transcript = function update_transcript(server, docId, chunk) {
+      console.log('update transcript called.')
+      var url = "http://"+server+"/doc/"+docId+"/english/transcript";
+      if (chunk != null) {
+        url += "/" + chunk;
+      }
+      $.ajax({
+        url : url,
+        type: "GET",
+        timeout: 5000,
+        success:function(data, textStatus, jqXHR) {
+          var transcript = '<p>' + data.replace(/\. /g, '.</p><p>') + '</p>';
+          $('#transcript_container').html(transcript);
+          //window.setTimeout(update_transcript, 10000);
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+          console.log("Unable to get transcript")
+          //window.setTimeout(update_transcript, 10000);
+        }
+      });
+    };
+
+    var update_word_cloud = function update_word_cloud(server, docId, chunk) {
+      console.log('update word cloud called.')
+      var wcList = '';
+      var url = "http://"+server+"/doc/"+docId+"/english/wordcloud";
+      if (chunk != null) {
+        url += "/" + chunk;
+      }
+      $.ajax({
+        url : url,
+        type: "GET",
+        timeout: 5000,
+        dataType: 'json',
+        success:function(data, textStatus, jqXHR) {
+          var maxTfidf = 0;
+          var minTfidf = 1000000000000;
+          for (var key in data['tokens']) {
+            var tfidf =  data['tokens'][key]['tfidf'];
+            minTfidf = Math.min(minTfidf, tfidf);
+            maxTfidf = Math.max(maxTfidf, tfidf);
+          }
+          for (var key in data['tokens']) {
+            var tfidf =  (data['tokens'][key]['tfidf'] - minTfidf)/ maxTfidf;
+            //tfidf = Math.max(minTfidf, tfidf) * 100
+            tfidf = Math.max(0.08, tfidf) * 100;
+            var tfidf_str = (tfidf.toString() + ' ' + key + '\n');
+            wcList += tfidf_str;
+          }
+          run(wcList);
+          //window.setTimeout(update_word_cloud, 10000);
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+          console.log("Unable to get wordcloud")
+          //window.setTimeout(update_word_cloud, 10000);
+        }
+      });
+    };
+
+    var update_doc_id = function update_doc_id(docId, chunk) {
+      document.title = "kluge stt: " + docId + " data";
+      if (chunk == null) {
+        chunk = '';
+      } else {
+        chunk = ' : ' + chunk;
+      }
+      $('#document_id_lead').text(docId + chunk);
+    };
+
+    var run = function run(list_data) {
+      $loading.prop('hidden', false);
+
+      // Load web font
+      $webfontLink.prop('href', $css);
+
+      // devicePixelRatio
+      var devicePixelRatio = parseFloat($dppx);
+
+      // Set the width and height
+      var width = $('#canvas-container').width();
+      var height = Math.floor(width * 0.35);
+      var pixelWidth = width;
+      var pixelHeight = height;
+
+      if (devicePixelRatio !== 1) {
+        $canvas.css({'width': width + 'px', 'height': height + 'px'});
+
+        pixelWidth *= devicePixelRatio;
+        pixelHeight *= devicePixelRatio;
+      } else {
+        $canvas.css({'width': '', 'height': '' });
+      }
+
+      $canvas.attr('width', pixelWidth);
+      $canvas.attr('height', pixelHeight);
+
+      $htmlCanvas.css({'width': pixelWidth + 'px', 'height': pixelHeight + 'px'});
+
+      var options = {
+        'gridSize': 18,
+        'weightFactor': 3,
+        'fontFamily': 'Average, Times, serif',
+        'color': 'random-light',
+        'shuffle': 0.0,
+        'rotateRatio': 0.0,
+        'backgroundColor': '#333'
+      };
+
+      // Set devicePixelRatio options
+      if (devicePixelRatio !== 1) {
+        if (!('gridSize' in options)) {
+          options.gridSize = 8;
+        }
+        options.gridSize *= devicePixelRatio;
+
+        if (options.origin) {
+          if (typeof options.origin[0] == 'number')
+            options.origin[0] *= devicePixelRatio;
+          if (typeof options.origin[1] == 'number')
+            options.origin[1] *= devicePixelRatio;
+        }
+
+        if (!('weightFactor' in options)) {
+          options.weightFactor = 1;
+        }
+        if (typeof options.weightFactor == 'function') {
+          var origWeightFactor = options.weightFactor;
+          options.weightFactor =
+            function weightFactorDevicePixelRatioWrap() {
+              return origWeightFactor.apply(this, arguments) * devicePixelRatio;
+            };
+        } else {
+          options.weightFactor *= devicePixelRatio;
+        }
+      }
+
+      // Put the word list into options
+      if (list_data != '') {
+        var list = [];
+        $.each(list_data.split('\n'), function each(i, line) {
+          if (!$.trim(line))
+            return;
+
+          var lineArr = line.split(' ');
+          var count = parseFloat(lineArr.shift()) || 0;
+          list.push([lineArr.join(' '), count]);
+        });
+        options.list = list;
+      }
+
+      // All set, call the WordCloud()
+      // Order matters here because the HTML canvas might by
+      // set to display: none.
+      WordCloud([$canvas[0], $htmlCanvas[0]], options);
+    };
+    var parentDocId = null;
+    var chunk = null;
+    var server = 'kluge-web.marathon.mesos:5000';
+    get_documents(server);
+
+  });
+  </script>
+</body>
+</html>
