@@ -74,9 +74,7 @@ class KlugeRedis():
             return None
         chunk_ids = self.conn.hkeys(keyname)
         sorted_chunk_ids = sorted(chunk_ids, key=int)
-        transcript = ""
-        for chunk_id in sorted_chunk_ids:
-            transcript = " " + self.conn.hget(keyname, chunk_id)
+        transcript = " ".join(self.conn.hmget(keyname, sorted_chunk_ids))
         end = time.time()
         stats.incr("get_transcript")
         stats.timing("get_transcript", end - start)
@@ -165,7 +163,7 @@ class KlugeRedis():
         temp_tf_df = []
 
         tf_keys = tfs.keys()
-        dfword_counts = self.conn.hmget(df_keyname, *tf_keys)
+        dfword_counts = self.conn.hmget(df_keyname, tf_keys)
         for idx, tfword in enumerate(tf_keys):
             dfword_count = dfword_counts[idx]
             try:
@@ -205,7 +203,7 @@ class KlugeRedis():
         temp_tf_df = []
 
         tf_keys = tfs.keys()
-        dfword_counts = self.conn.hmget(df_keyname, *tf_keys)
+        dfword_counts = self.conn.hmget(df_keyname, tf_keys)
         for idx, tfword in enumerate(tf_keys):
             dfword_count = dfword_counts[idx]
             try:
