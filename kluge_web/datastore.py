@@ -24,7 +24,7 @@ class KlugeRedis():
                        "q:in:%s:stt:%s" % (namespace, lang))
         end = time.time()
         stats.incr("add_job")
-        stats.timing("add_job", end - start)
+        stats.timing("add_job", (end - start)*1000)
 
     # no need to metric track
     def key_exists(self, keyname):
@@ -39,7 +39,7 @@ class KlugeRedis():
         elements = self.conn.lrange(keyname, 0, -1)
         end = time.time()
         stats.incr("get_queue_info")
-        stats.timing("get_queue_info", end - start)
+        stats.timing("get_queue_info", (end - start)*1000)
         return elements
 
     # done
@@ -51,7 +51,7 @@ class KlugeRedis():
         status = self.conn.hget(keyname, uid + ":" + chunkid)
         end = time.time()
         stats.incr("get_status_info")
-        stats.timing("get_status_info", end - start)
+        stats.timing("get_status_info", (end - start)*1000)
         return status
 
     # maybe
@@ -63,7 +63,7 @@ class KlugeRedis():
         transcript_chunk = self.conn.hget(keyname, chunkid)
         end = time.time()
         stats.incr("get_transcript_chunk")
-        stats.timing("get_transcript_chunk", end - start)
+        stats.timing("get_transcript_chunk", (end - start)*1000)
         return transcript_chunk.strip()
 
     # maybe
@@ -77,7 +77,7 @@ class KlugeRedis():
         transcript = " ".join(self.conn.hmget(keyname, sorted_chunk_ids))
         end = time.time()
         stats.incr("get_transcript")
-        stats.timing("get_transcript", end - start)
+        stats.timing("get_transcript", (end - start)*1000)
         return transcript.strip()
 
     # maybe
@@ -96,7 +96,7 @@ class KlugeRedis():
             transcript += " " + tok_result.word_transcript
         end = time.time()
         stats.incr("get_raw_transcript")
-        stats.timing("get_raw_transcript", end - start)
+        stats.timing("get_raw_transcript", (end - start)*1000)
         return transcript.strip()
 
     # maybe
@@ -108,7 +108,7 @@ class KlugeRedis():
         tfs = self.conn.hgetall(keyname)
         end = time.time()
         stats.incr("get_term_freqs_chunk")
-        stats.timing("get_term_freqs_chunk", end - start)
+        stats.timing("get_term_freqs_chunk", (end - start)*1000)
         return tfs
 
     # maybe
@@ -120,7 +120,7 @@ class KlugeRedis():
         tfs = self.conn.hgetall(keyname)
         end = time.time()
         stats.incr("get_term_freqs")
-        stats.timing("get_term_freqs", end - start)
+        stats.timing("get_term_freqs", (end - start)*1000)
         return tfs
 
     # maybe
@@ -132,7 +132,7 @@ class KlugeRedis():
         chunk_ids = self.conn.hkeys(keyname)
         end = time.time()
         stats.incr("get_job_chunks")
-        stats.timing("get_job_chunks", end - start)
+        stats.timing("get_job_chunks", (end - start)*1000)
         return chunk_ids
 
     # maybe
@@ -144,7 +144,7 @@ class KlugeRedis():
         chunk_ids = self.conn.hkeys(keyname)
         end = time.time()
         stats.incr("get_result_chunks")
-        stats.timing("get_result_chunks", end - start)
+        stats.timing("get_result_chunks", (end - start)*1000)
         return chunk_ids
 
     # maybe
@@ -184,7 +184,7 @@ class KlugeRedis():
         }
         end = time.time()
         stats.incr("get_word_cloud")
-        stats.timing("get_word_cloud", end - start)
+        stats.timing("get_word_cloud", (end - start)*1000)
         return wordcloud_vals
 
     # maybe
@@ -224,5 +224,5 @@ class KlugeRedis():
         }
         end = time.time()
         stats.incr("get_word_cloud_chunk")
-        stats.timing("get_word_cloud_chunk", end - start)
+        stats.timing("get_word_cloud_chunk", (end - start)*1000)
         return wordcloud_vals
