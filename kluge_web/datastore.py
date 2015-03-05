@@ -5,6 +5,7 @@ from kluge_web.io.tokenizer_job_pb2 import TokenizerJobMessage
 from collections import defaultdict
 import math
 
+
 class KlugeRedis():
     def __init__(self, hostname, port):
         self.conn = redis.StrictRedis(host=hostname, port=port, db=0)
@@ -44,7 +45,7 @@ class KlugeRedis():
         if not self.key_exists(keyname):
             return None
         transcript_chunk = self.conn.hget(keyname, chunkid)
-        return transcript_chunk
+        return transcript_chunk.strip()
 
     # maybe
     def get_transcript(self, lang, uid):
@@ -55,8 +56,8 @@ class KlugeRedis():
         sorted_chunk_ids = sorted(chunk_ids, key=int)
         transcript = ""
         for chunk_id in sorted_chunk_ids:
-            transcript += " " + self.conn.hget(keyname, chunk_id)
-        return transcript
+            transcript = " " + self.conn.hget(keyname, chunk_id)
+        return transcript.strip()
 
     # maybe
     def get_raw_transcript(self, lang, uid):
@@ -71,7 +72,7 @@ class KlugeRedis():
             tok_result = TokenizerResultMessage()
             tok_result.ParseFromString(element)
             transcript += " " + tok_result.word_transcript
-        return transcript
+        return transcript.strip()
 
     # maybe
     def get_term_freqs_chunk(self, uid, lang, chunkid):
