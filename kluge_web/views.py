@@ -169,16 +169,15 @@ class AddJob(Resource):
 ##
 ## Actually setup the Api resource routing here
 ##
-api.add_resource(RawTranscript, '/rawtrans/<string:uid>/<string:lang>')
-api.add_resource(Transcript, '/transcript/<string:uid>/<string:lang>')
-api.add_resource(TranscriptChunk, '/transcript/<string:uid>/<string:lang>/<string:chunkid>')
-api.add_resource(TermFreqs, '/tfs/<string:uid>/<string:lang>')
-api.add_resource(TermFreqsChunk, '/tfs/<string:uid>/<string:lang>/<int:chunkid>')
+#api.add_resource(RawTranscript, '/rawtrans/<string:uid>/<string:lang>')
+api.add_resource(Transcript, '/doc/<string:uid>/<string:lang>/transcript')
+api.add_resource(TranscriptChunk, '/doc/<string:uid>/<string:lang>/transcript/<string:chunkid>')
+api.add_resource(TermFreqs, '/doc/<string:uid>/<string:lang>/tf')
+api.add_resource(TermFreqsChunk, '/doc/<string:uid>/<string:lang>/tf/<int:chunkid>')
 api.add_resource(QueueInfo, '/queue/<string:lang>/<string:qname>')
 api.add_resource(StatusInfo, '/status/<string:uid>/<string:chunkid>/<string:lang>')
-api.add_resource(GetChunks, '/doc/<string:uid>/')
-api.add_resource(GetSpecificChunks, '/doc/<string:uid>/<string:ttype>')
+api.add_resource(GetChunks, '/chunks/<string:uid>')
+api.add_resource(GetSpecificChunks, '/chunks/<string:uid>/<string:ttype>')
 api.add_resource(GetWordclouds, '/doc/<string:uid>/<string:lang>/wordcloud')
 api.add_resource(GetWordcloudsChunk, '/doc/<string:uid>/<string:lang>/wordcloud/<int:chunkid>')
-
 api.add_resource(AddJob, '/jobs/<string:lang>')
