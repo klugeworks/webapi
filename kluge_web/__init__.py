@@ -44,5 +44,7 @@ def create_datastore(app):
     ds_class = app.config.get('KLUGE_WEB_DATASTORE', None)
     ds_hostname = app.config.get('KLUGE_DS_HOSTNAME', None)
     ds_port = app.config.get('KLUGE_DS_PORT', None)
-    redis_ds = getattr(datastore, ds_class)(hostname=ds_hostname, port=ds_port)
+    shost = app.config.get('KLUGE_STATSD_HOSTNAME', None)
+    sport = app.config.get('KLUGE_STATSD_PORT', None)
+    redis_ds = getattr(datastore, ds_class)(hostname=ds_hostname, port=ds_port, statsd_host=shost, statsd_port=sport)
     return redis_ds
