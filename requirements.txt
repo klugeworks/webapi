@@ -8,7 +8,6 @@ aniso8601==0.92
 backports.ssl-match-hostname==3.4.0.2
 certifi==14.05.14
 itsdangerous==0.24
-kluge-bs==1.0
 protobuf==3.0.0-alpha-1
 pytz==2014.10
 redis==2.10.3
