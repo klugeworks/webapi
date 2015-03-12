@@ -216,8 +216,8 @@
     $("body").on('click', '.chunk', function() {
       var chunk = $(this).html();
       update_doc_id(parentDocId, chunk);
-      update_word_cloud(server, parentDocId, chunk);
-      update_transcript(server, parentDocId, chunk);
+      update_word_cloud(parentDocId, chunk);
+      update_transcript(parentDocId, chunk);
     });
 
     $("body").on('click', '.document_button', function updateContent() {
@@ -242,9 +242,9 @@
 
     var switch_to_doc = function switch_to_doc(docId) {
       update_doc_id(docId, chunk);
-      update_word_cloud(server, docId, chunk);
-      update_transcript(server, docId, chunk);
-      update_chunks(server, docId);
+      update_word_cloud(docId, chunk);
+      update_transcript(docId, chunk);
+      update_chunks(docId);
       parentDocId = docId;
       $("#summary_container").hide();
       $("#doc_container").show();
@@ -255,9 +255,9 @@
     $("body").on('click', '#document_id_lead', function updateContent() {
       var chunk = $(this).html();
       update_doc_id(parentDocId, null);
-      update_chunks(server, parentDocId);
-      update_word_cloud(server, parentDocId, null);
-      update_transcript(server, parentDocId, null);
+      update_chunks(parentDocId);
+      update_word_cloud(parentDocId, null);
+      update_transcript(parentDocId, null);
     });
 
     $('#btn-canvas').prop('disabled', true);
@@ -271,9 +271,9 @@
       $examples.blur();
     });
 
-    var get_documents = function get_documents(server) {
+    var get_documents = function get_documents() {
       console.log('get documents called.')
-      var url = "http://"+server+"/queue/english/done";
+      var url = "/queue/english/done";
       $.ajax({
         url : url,
         type: "GET",
@@ -301,9 +301,9 @@
       });
     };
 
-    var update_chunks = function update_chunks(server, docId) {
+    var update_chunks = function update_chunks(docId) {
       console.log('update chunks called.')
-      var url = "http://"+server+"/chunks/"+docId;
+      var url = "/chunks/"+docId;
       $.ajax({
         url : url,
         type: "GET",
@@ -325,9 +325,9 @@
       });
     };
 
-    var update_transcript = function update_transcript(server, docId, chunk) {
+    var update_transcript = function update_transcript(docId, chunk) {
       console.log('update transcript called.')
-      var url = "http://"+server+"/doc/"+docId+"/english/transcript";
+      var url = "/doc/"+docId+"/english/transcript";
       if (chunk != null) {
         url += "/" + chunk;
       }
@@ -347,10 +347,10 @@
       });
     };
 
-    var update_word_cloud = function update_word_cloud(server, docId, chunk) {
+    var update_word_cloud = function update_word_cloud(docId, chunk) {
       console.log('update word cloud called.')
       var wcList = '';
-      var url = "http://"+server+"/doc/"+docId+"/english/wordcloud";
+      var url = "/doc/"+docId+"/english/wordcloud";
       if (chunk != null) {
         url += "/" + chunk;
       }
@@ -482,8 +482,7 @@
     };
     var parentDocId = null;
     var chunk = null;
-    var server = 'kluge-web.marathon.mesos:5000';
-    get_documents(server);
+    get_documents();
 
   });
   </script>
